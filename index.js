@@ -12,12 +12,12 @@ const client = new Client({
 
 const responseMessageFile = 'responseMessage.txt';
 
-// authorized user IDs
+// Authorized user IDs
 const authorizedIDs = ['601274881954414612', '351535390618026004'];
 
-// cooldown tracking
+// Cooldown tracking
 const cooldowns = new Map();
-const cooldownSeconds = 15; // cooldown
+const cooldownSeconds = 60; // 15 seconds cooldown
 
 function saveResponseMessage(message) {
     fs.writeFileSync(responseMessageFile, message);
@@ -36,7 +36,7 @@ client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
     client.guilds.cache.forEach(async guild => {
         try {
-            // register the /status command
+            // Register the /status command
             await guild.commands.create({
                 name: 'status',
                 description: 'Change the bot\'s status message',
@@ -49,7 +49,7 @@ client.once('ready', async () => {
                 }]
             });
 
-            // register the /changemessage command
+            // Register the /changemessage command
             await guild.commands.create({
                 name: 'changemessage',
                 description: 'Change the message sent when someone self-stars.',
@@ -93,19 +93,38 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.on('messageReactionAdd', async (reaction, user) => {
+    // Ignore if the reaction is from a bot
+    if (user.bot) {
+        return;
+    }
+
     if (reaction.emoji.name === '⭐' && reaction.message.author.id === user.id) {
-        reaction.users.remove(user);
+        // Always remove the star reaction, but ignore if the bot lacks permissions
+        try {
+            reaction.users.remove(user);
+        } catch (error) {
+            if (error.code !== 50013) { // Ignore missing permissions
+                console.error("Failed to remove reaction:", error);
+            }
+            // Optionally, log or handle other types of errors
+        }
 
         const currentTime = Date.now();
         const lastUsed = cooldowns.get(user.id);
 
-        // send the message only if the user is not in the cooldown period
+        // Send the message only if the user is not in the cooldown period
         if (!lastUsed || currentTime - lastUsed > cooldownSeconds * 1000) {
             cooldowns.set(user.id, currentTime);
             const personalizedMessage = responseMessage.replace('{mention}', `<@${user.id}>`);
-            reaction.message.channel.send(personalizedMessage);
+            try {
+                reaction.message.channel.send(personalizedMessage);
+            } catch (error) {
+                if (error.code !== 50013) {
+                    console.error("Failed to send message:", error);
+                }
+            }
         }
     }
 });
 
-client.login('bot_token_here');
+client.login('token_here');
