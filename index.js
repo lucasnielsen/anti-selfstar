@@ -10,7 +10,7 @@ const client = new Client({
     ]
 });
 
-const responseMessageFile = 'responseMessage.txt'; // This should create the responseMessage.txt file. If it doesn't, add manually
+const responseMessageFile = 'responseMessage.txt'; // It should create the responseMessage.txt file. If it doesn't, add manually
 
 // Authorized user IDs to change status
 const authorizedIDs = ['your_discord_id_here'];
