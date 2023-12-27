@@ -10,14 +10,14 @@ const client = new Client({
     ]
 });
 
-const responseMessageFile = 'responseMessage.txt';
+const responseMessageFile = 'responseMessage.txt'; // This should create the responseMessage.txt file. If it doesn't, add manually
 
-// Authorized user IDs
-const authorizedIDs = ['601274881954414612', '351535390618026004'];
+// Authorized user IDs to change status
+const authorizedIDs = ['your_discord_id_here'];
 
 // Cooldown tracking
 const cooldowns = new Map();
-const cooldownSeconds = 60; // 15 seconds cooldown
+const cooldownSeconds = 60; // Cooldown
 
 function saveResponseMessage(message) {
     fs.writeFileSync(responseMessageFile, message);
@@ -93,20 +93,18 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.on('messageReactionAdd', async (reaction, user) => {
-    // Ignore if the reaction is from a bot
+    // Ignore if reaction is from bot
     if (user.bot) {
         return;
     }
 
     if (reaction.emoji.name === '⭐' && reaction.message.author.id === user.id) {
-        // Always remove the star reaction, but ignore if the bot lacks permissions
         try {
             reaction.users.remove(user);
         } catch (error) {
-            if (error.code !== 50013) { // Ignore missing permissions
+            if (error.code !== 50013) { // Ignore missing permissions (DOESN'T WORK?)
                 console.error("Failed to remove reaction:", error);
             }
-            // Optionally, log or handle other types of errors
         }
 
         const currentTime = Date.now();
@@ -117,10 +115,11 @@ client.on('messageReactionAdd', async (reaction, user) => {
             cooldowns.set(user.id, currentTime);
             const personalizedMessage = responseMessage.replace('{mention}', `<@${user.id}>`);
             try {
-                reaction.message.channel.send(personalizedMessage);
+                const sentMessage = await reaction.message.channel.send(personalizedMessage);
+                await sentMessage.react('⭐');
             } catch (error) {
                 if (error.code !== 50013) {
-                    console.error("Failed to send message:", error);
+                    console.error("Failed to send message or react:", error);
                 }
             }
         }
